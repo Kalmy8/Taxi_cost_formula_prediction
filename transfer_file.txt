@@ -1,0 +1,2 @@
+C:\Users\kalmy\OneDrive\Рабочий стол\Address_parser/transfer_file.txtЕкатеринбург,ул. Вилонова, 24
+Екатеринбург,ул. Библиотечная, 25
