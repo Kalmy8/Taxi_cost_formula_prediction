@@ -26,9 +26,11 @@ repos:
   hooks:
   - id: flake8
     args: [--config=pyproject.toml]
+    additional_dependencies: [ Flake8-pyproject ]
 
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: 1.10.1
+  rev: v1.10.1
   hooks:
   - id: mypy
     args: ["--config-file=pyproject.toml"]
+    additional_dependencies: ['types-requests']
