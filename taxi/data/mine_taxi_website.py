@@ -1,7 +1,6 @@
 import time
 from collections import defaultdict
 
-import pandas as pd
 from get_random_address import get_random_address
 from selenium import webdriver
 from selenium.common import NoSuchElementException, StaleElementReferenceException
@@ -102,18 +101,16 @@ def get_time(driver: webdriver, ride_info: dict[str, list[list[str] | str]]):
     ride_info["Время"].append(span_hints[1].text[7:])
 
 
-def main(loop_count: int) -> dict[str, list[list[str] | str]]:
+def main() -> dict[str, list[list[str] | str]]:
     driver = open_driver()
     ride_info: dict[str, list[list[str] | str]] = defaultdict(lambda: [])
-    for i in range(loop_count):
-        enter_keys_and_get_distance(driver, ride_info)
-        get_prices(driver, ride_info)
-        get_time(driver, ride_info)
+    enter_keys_and_get_distance(driver, ride_info)
+    get_prices(driver, ride_info)
+    get_time(driver, ride_info)
 
     driver.quit()
     return ride_info
 
 
 if __name__ == "__main__":
-    rides = main(3)
-    print(pd.DataFrame(rides))
+    rides = main()

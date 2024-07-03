@@ -9,7 +9,6 @@ Predicting taxi-aggregator ride price with use of distance, traffic jam and weat
 ## Project Organization
 
 ```
-├── LICENSE            <- Open-source license if one is chosen
 ├── Makefile           <- Makefile with convenience commands like `make data` or `make train`
 ├── README.md          <- The top-level README for developers using this project.
 ├── data
@@ -17,9 +16,7 @@ Predicting taxi-aggregator ride price with use of distance, traffic jam and weat
 │   ├── interim        <- Intermediate data that has been transformed.
 │   ├── processed      <- The final, canonical data sets for modeling.
 │   └── raw            <- The original, immutable data dump.
-│
-├── docs               <- A default mkdocs project; see mkdocs.org for details
-│
+││
 ├── models             <- Trained and serialized models, model predictions, or model summaries
 │
 ├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
@@ -36,8 +33,6 @@ Predicting taxi-aggregator ride price with use of distance, traffic jam and weat
 │
 ├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
 │                         generated with `pip freeze > requirements.txt`
-│
-├── setup.cfg          <- Configuration file for flake8
 │
 └── taxi                <- Source code for use in this project.
     │
