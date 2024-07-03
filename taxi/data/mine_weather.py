@@ -1,6 +1,5 @@
 import json
 import os
-from typing import Optional
 
 import requests
 from dotenv import load_dotenv
@@ -20,7 +19,7 @@ class WeatherParser:
         self.latitude = config["latitude"]
         self.longitude = config["longitude"]
 
-    def get_weather_dict(self) -> dict[str, Optional[str]]:
+    def get_weather_dict(self) -> dict[str, str]:
         """
         Use https://api.openweathermap.org and given latitude, longitude, to define local weather parameters.
         :return: Actual weather state, temperature (celsius) and humidity (%)
@@ -45,7 +44,7 @@ class WeatherParser:
 
         except Exception as e:
             print("Exception (weather):", e)
-            return {"Actual_state": None, "Temp": None, "Humidity": None}
+            return {"Actual_state": "", "Temp": "", "Humidity": ""}
 
 
 if __name__ == "__main__":

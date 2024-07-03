@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 from selenium import webdriver
+from tqdm import tqdm
 
 from taxi.data.mine_taxi_website import TaxiParser
 from taxi.data.mine_weather import WeatherParser
@@ -33,6 +34,8 @@ def main():
     # Ensure the data directory exists
     os.makedirs(CSV_FILE_path.parent, exist_ok=True)
 
+    print("PARAMETERS INITIALIZED CORRECTLY...")
+
     # Setup Edge options
     options = webdriver.EdgeOptions()
     options.use_chromium = True
@@ -46,19 +49,25 @@ def main():
     # Initialize the driver
     driver = webdriver.Edge(options=options)
 
+    print("WEBDRIVER OPENED SUCCESSFULLY...")
+
     try:
         while True:
             data = {"timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")}
 
             # Get predictors data
             taxi = TaxiParser(driver)
-            taxi_dict: dict[str, list[list[str] | str]] = taxi.get_ride_info_dict()
+            taxi_dict = taxi.get_ride_info_dict()
+            print("TAXI INFORMATION PARSED...")
+
             weather = WeatherParser()
+            print("WEATHER INFORMATION PARSED...")
+
             weather_dict = weather.get_weather_dict()
 
             # Combine data
-            data.update(taxi_dict)  # type: ignore
-            data.update(weather_dict)  # type: ignore
+            data.update(taxi_dict)
+            data.update(weather_dict)
 
             # Write to CSV
             file_exists = os.path.isfile(CSV_FILE_path)
@@ -68,7 +77,16 @@ def main():
                     writer.writeheader()
                 writer.writerow(data)
 
-            time.sleep(60 * args.frequency)
+            total_time = 60 * args.frequency  # in seconds
+            total_iterations = 100
+            sleep_duration = total_time / total_iterations
+
+            # Use tqdm to display a progress bar
+            for i in tqdm(
+                range(total_iterations),
+                desc=f"SLEEPING, NEXT INVOKATION IN {total_time} SECONDS",
+            ):
+                time.sleep(sleep_duration)
 
     finally:
         driver.quit()

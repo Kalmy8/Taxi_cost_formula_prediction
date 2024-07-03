@@ -1,5 +1,4 @@
 import time
-from collections import defaultdict
 
 from selenium import webdriver
 from selenium.common import NoSuchElementException, StaleElementReferenceException
@@ -16,19 +15,19 @@ class TaxiParser:
         self.driver = driver
         self.driver.implicitly_wait(5)
 
-    def get_ride_info_dict(self) -> dict[str, list[list[str] | str]]:
-        ride_info: dict[str, list[list[str] | str]] = defaultdict(lambda: [])
+    def get_ride_info_dict(self) -> dict[str, str]:
+        ride_info: dict[str, str] = dict()
         self.__open_website()
         self.__enter_keys_and_get_distance(ride_info)
         self.__get_prices(ride_info)
         self.__get_time(ride_info)
 
-        return dict(ride_info)
+        return ride_info
 
     def __open_website(self):
         self.driver.get("https://taxi.yandex.ru/")
 
-    def __enter_keys_and_get_distance(self, ride_info: dict[str, list[list[str] | str]]):
+    def __enter_keys_and_get_distance(self, ride_info: dict[str, str]):
         # Wait for elements to be presented
         textareas = WebDriverWait(self.driver, 5).until(
             EC.presence_of_all_elements_located((By.TAG_NAME, "textarea"))
@@ -68,7 +67,7 @@ class TaxiParser:
                             "div.result-distance--kYtjt.result-distance--FaJyS",
                         )
 
-                        ride_info["Дистанция"].append(distance_element.text)
+                        ride_info["Дистанция"] = distance_element.text
                         break
 
                     except (StaleElementReferenceException, NoSuchElementException):
@@ -80,20 +79,21 @@ class TaxiParser:
             first_child.click()
             time.sleep(3)
 
-        ride_info["Адреса"].append(used_addresses)
+        ride_info["Точка отправления"] = used_addresses[0]
+        ride_info["Точка прибытия"] = used_addresses[1]
 
-    def __get_prices(self, ride_info: dict[str, list[list[str] | str]]):
+    def __get_prices(self, ride_info: dict[str, str]):
         # Find all elements with class "priceText"
         taxi_classes = self.driver.find_elements(By.CSS_SELECTOR, "span.title--rOp0c")
         prices = self.driver.find_elements(By.CSS_SELECTOR, "span.priceText--oa4eD")
 
         for taxi_class, price in zip(taxi_classes, prices):
             only_digits = "".join(filter(str.isdigit, price.text))
-            ride_info[f"{taxi_class.text}"].append(only_digits)
+            ride_info[f"{taxi_class.text}"] = only_digits
 
-    def __get_time(self, ride_info: dict[str, list[list[str] | str]]):
+    def __get_time(self, ride_info: dict[str, str]):
         span_hints = self.driver.find_elements(By.CSS_SELECTOR, "span.hint--AH9wx")
-        ride_info["Длительность"].append(span_hints[1].text[7:])
+        ride_info["Длительность"] = span_hints[1].text[7:]
 
 
 def main():
