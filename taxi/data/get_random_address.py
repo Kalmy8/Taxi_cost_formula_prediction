@@ -1,4 +1,4 @@
-import os
+import json
 from pathlib import Path
 from random import shuffle
 
@@ -9,20 +9,19 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-# Access variables using os.environ
-ADDRESS_BASE_URL = os.environ.get("ADDRESS_BASE_URL", "")
-DATA_DIR_str = os.environ.get("DATA_DIR", "")
-STORED_ADDRESSES_str = os.environ.get("STORED_ADDRESSES", "")
+# Load config.json file
+with open("config.json", "r") as config_file:
+    config = json.load(config_file)
 
-if "" in (ADDRESS_BASE_URL, DATA_DIR_str, STORED_ADDRESSES_str):
-    raise ValueError(
-        "Environment variables ADDRESS_BASE_URL, DATA_DIR, or STORED_ADDRESSES are not set."
-    )
+try:
+    ADDRESS_BASE_URL = config["ADDRESS_BASE_URL"]
+    STORED_ADDRESSES_str = config["STORED_ADDRESSES_PATH"]
 
-DATA_DIR_path = Path(DATA_DIR_str)
+except KeyError:
+    print("Environment variables ADDRESS_BASE_URL, or STORED_ADDRESSES are not set.")
+    raise KeyError
+
 STORED_ADDRESSES_path = Path(STORED_ADDRESSES_str)
-
-STORED_ADDRESSES_PATH = DATA_DIR_path / STORED_ADDRESSES_path
 
 HEADERS = {
     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) \
@@ -79,7 +78,7 @@ def get_random_address() -> str:
     :return: one single address presented as str
     """
     try:
-        with open(STORED_ADDRESSES_PATH, "r") as file:
+        with open(STORED_ADDRESSES_path, "r") as file:
             addresses = file.read().splitlines()
             if len(addresses) == 0:
                 raise EOFError
@@ -87,7 +86,7 @@ def get_random_address() -> str:
     except (FileNotFoundError, EOFError):
         print("File not found, collecting data...")
         addresses = collect_addresses(ADDRESS_BASE_URL)
-        with open(STORED_ADDRESSES_PATH, "w") as file:
+        with open(STORED_ADDRESSES_path, "w") as file:
             for address in addresses:
                 file.write(f"{address}\n")
 
