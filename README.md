@@ -26,7 +26,7 @@ Predicting taxi-aggregator ride price with use of distance, traffic jam and weat
 ├── pyproject.toml     <- Project configuration file with package metadata for taxi
 │                         and configuration for tools like black
 │
-├── references         <- Data dictionaries, manuals, and all other explanatory materials.
+├── Dockerfile         <- 
 │
 ├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
 │   └── figures        <- Generated graphics and figures to be used in reporting
@@ -39,10 +39,10 @@ Predicting taxi-aggregator ride price with use of distance, traffic jam and weat
     ├── __init__.py    <- Makes taxi a Python module
     │
     ├── data           <- Scripts to download or generate data
-    │   └── make_dataset.py
+    │   └── mine_taxi_website.py
     │
     ├── features       <- Scripts to turn raw data into features for modeling
-    │   └── build_features.py
+    │   └── launch_datamining.py
     │
     ├── models         <- Scripts to train models and then use trained models to make
     │   │                 predictions

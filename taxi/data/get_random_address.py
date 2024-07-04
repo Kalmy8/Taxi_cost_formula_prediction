@@ -1,25 +1,13 @@
-import json
+import os
 from pathlib import Path
 from random import shuffle
 
 import requests
 from bs4 import BeautifulSoup
-from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
-
-# Load config.json file
-with open("config.json", "r") as config_file:
-    config = json.load(config_file)
-
-try:
-    ADDRESS_BASE_URL = config["ADDRESS_BASE_URL"]
-    STORED_ADDRESSES_str = config["STORED_ADDRESSES_PATH"]
-
-except KeyError:
-    print("Environment variables ADDRESS_BASE_URL, or STORED_ADDRESSES are not set.")
-    raise KeyError
+# Load environment variables
+ADDRESS_BASE_URL_str = os.getenv("ADDRESS_BASE_URL", "")
+STORED_ADDRESSES_str = os.getenv("STORED_ADDRESSES_PATH", "")
 
 STORED_ADDRESSES_path = Path(STORED_ADDRESSES_str)
 
@@ -85,7 +73,7 @@ def get_random_address() -> str:
 
     except (FileNotFoundError, EOFError):
         print("File not found, collecting data...")
-        addresses = collect_addresses(ADDRESS_BASE_URL)
+        addresses = collect_addresses(ADDRESS_BASE_URL_str)
         with open(STORED_ADDRESSES_path, "w") as file:
             for address in addresses:
                 file.write(f"{address}\n")

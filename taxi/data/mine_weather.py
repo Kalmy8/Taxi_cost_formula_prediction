@@ -1,23 +1,14 @@
-import json
 import os
 
 import requests
-from dotenv import load_dotenv
 
 
 class WeatherParser:
     def __init__(self):
-        load_dotenv()
         self.weather_api_key = os.getenv("OPENWEATHER_API_KEY")
-
-        # Load config.json file
-        with open("config.json", "r") as config_file:
-            config = json.load(config_file)
-
-        # Access location parameters from config.json
-        self.city = config["city"]
-        self.latitude = config["latitude"]
-        self.longitude = config["longitude"]
+        self.city = os.getenv("CITY")
+        self.latitude = os.getenv("LATITUDE")
+        self.longitude = os.getenv("LONGITUDE")
 
     def get_weather_dict(self) -> dict[str, str]:
         """
