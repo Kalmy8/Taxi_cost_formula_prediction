@@ -4,11 +4,11 @@ import requests
 
 
 class WeatherParser:
-    def __init__(self):
-        self.weather_api_key = os.getenv("OPENWEATHER_API_KEY")
-        self.city = os.getenv("CITY")
-        self.latitude = os.getenv("LATITUDE")
-        self.longitude = os.getenv("LONGITUDE")
+    def __init__(self, weather_api_key: str, city: str, latitude: str, longitude: str):
+        self.weather_api_key = weather_api_key
+        self.city = city
+        self.latitude = latitude
+        self.longitude = longitude
 
     def get_weather_dict(self) -> dict[str, str]:
         """
@@ -38,6 +38,15 @@ class WeatherParser:
             return {"Actual_state": "", "Temp": "", "Humidity": ""}
 
 
-if __name__ == "__main__":
-    weather = WeatherParser()
+def main():
+    # WeatherParser required parameters
+    OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY", "")
+    CITY = os.getenv("CITY", "")
+    LATITUDE = os.getenv("LATITUDE", "")
+    LONGITUDE = os.getenv("LONGITUDE", "")
+    weather = WeatherParser(OPENWEATHER_API_KEY, CITY, LATITUDE, LONGITUDE)
     print(weather.get_weather_dict())
+
+
+if __name__ == "__main__":
+    main()

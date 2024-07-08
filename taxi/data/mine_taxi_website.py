@@ -1,4 +1,6 @@
+import os
 import time
+from pathlib import Path
 
 from selenium import webdriver
 from selenium.common import NoSuchElementException, StaleElementReferenceException
@@ -11,9 +13,13 @@ from taxi.data.get_random_address import get_random_address
 
 
 class TaxiParser:
-    def __init__(self, driver: webdriver):
+    def __init__(
+        self, driver: webdriver, STORED_ADDRESSES_path: Path, ADDRESS_BASE_URL_str: str
+    ):
         self.driver = driver
         self.driver.implicitly_wait(5)
+        self.STORED_ADDRESSES_path = STORED_ADDRESSES_path
+        self.ADDRESS_BASE_URL_str = ADDRESS_BASE_URL_str
 
     def get_ride_info_dict(self) -> dict[str, str]:
         ride_info: dict[str, str] = dict()
@@ -39,7 +45,9 @@ class TaxiParser:
             textarea = textareas[i]
 
             # Enters single address
-            address = get_random_address()
+            address = get_random_address(
+                self.STORED_ADDRESSES_path, self.ADDRESS_BASE_URL_str
+            )
             used_addresses.append(address)
             textarea.send_keys(Keys.CONTROL + "a")
             time.sleep(1)
@@ -112,7 +120,11 @@ def main():
     driver = webdriver.Edge(options=options)
     driver.implicitly_wait(5)
 
-    taxi = TaxiParser(driver)
+    # Load environment variables
+    ADDRESS_BASE_URL_str = os.getenv("ADDRESS_BASE_URL", "")
+    STORED_ADDRESSES_path = Path(os.getenv("STORED_ADDRESSES_PATH", ""))
+
+    taxi = TaxiParser(driver, STORED_ADDRESSES_path, ADDRESS_BASE_URL_str)
     ride_info = taxi.get_ride_info_dict()
     print(ride_info)
 

@@ -56,7 +56,7 @@ def main():
     # Parsing arguments
     args = parser.parse_args()
 
-    # Load all the environmental variables
+    # Specify all the environmental variables
     required_env_variables = [
         "ADDRESS_BASE_URL",
         "STORED_ADDRESSES_PATH",
@@ -67,14 +67,24 @@ def main():
         "LONGITUDE",
         "OPENWEATHER_API_KEY",
     ]
-
     check_and_load_env_variables(required_env_variables)
+
     CSV_FILE_path = Path(os.getenv("CSV_DATABASE_PATH", ""))
     USER_DATA_path = Path(os.getenv("MS_EDGE_USER_DATA_PATH", ""))
 
     # Split USER_DATA_path to user-data-dir and profile-directory, as required by selenium.options.add_argument(...) function
     USER_DATA_dir_str = str(USER_DATA_path.parent)
     USER_DATA_profile_str = str(USER_DATA_path.name)
+
+    # TaxiParser required parameters
+    ADDRESS_BASE_URL_str = os.getenv("ADDRESS_BASE_URL", "")
+    STORED_ADDRESSES_path = Path(os.getenv("STORED_ADDRESSES_PATH", ""))
+
+    # WeatherParser required parameters
+    OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY", "")
+    CITY = os.getenv("CITY", "")
+    LATITUDE = os.getenv("LATITUDE", "")
+    LONGITUDE = os.getenv("LONGITUDE", "")
 
     # Ensure the data directory exists
     os.makedirs(CSV_FILE_path.parent, exist_ok=True)
@@ -101,11 +111,11 @@ def main():
             data = {"timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")}
 
             # Get predictors data
-            taxi = TaxiParser(driver)
+            taxi = TaxiParser(driver, STORED_ADDRESSES_path, ADDRESS_BASE_URL_str)
             taxi_dict = taxi.get_ride_info_dict()
             print("TAXI INFORMATION PARSED...")
 
-            weather = WeatherParser()
+            weather = WeatherParser(OPENWEATHER_API_KEY, CITY, LATITUDE, LONGITUDE)
             print("WEATHER INFORMATION PARSED...")
 
             weather_dict = weather.get_weather_dict()
