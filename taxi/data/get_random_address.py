@@ -72,7 +72,7 @@ def get_random_address(STORED_ADDRESSES_path: Path, ADDRESS_BASE_URL_str: str) -
     except (FileNotFoundError, EOFError):
         print("File not found, collecting data...")
         addresses = collect_addresses(ADDRESS_BASE_URL_str)
-        with open(STORED_ADDRESSES_path, "w") as file:
+        with open(STORED_ADDRESSES_path, "w", encoding="utf8") as file:
             for address in addresses:
                 file.write(f"{address}\n")
 
