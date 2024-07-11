@@ -30,7 +30,7 @@ def check_and_load_env_variables(required_env_variables):
 
         # Check again for missing variables after loading .env file
         missing_args_after_load = [
-            arg for arg in required_env_variables if os.getenv(arg) == ""
+            arg for arg in required_env_variables if os.getenv(arg, "") == ""
         ]
 
         if missing_args_after_load:
@@ -44,27 +44,31 @@ def check_and_load_env_variables(required_env_variables):
             raise ValueError("Missing required environmental variables")
 
 
-GITHUB_USERNAME = os.getenv("GITHUB_USERNAME", "")
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
-GITHUB_EMAIL = os.getenv("GITHUB_EMAIL", "")
-REPO_URL = os.getenv("REPO_URL", "")
-BRANCH_NAME = os.getenv("DATA_BRANCH_NAME", "")
-
-
 def git_setup():
+    GITHUB_USERNAME = os.getenv("GITHUB_USERNAME", "")
+    GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
+    GITHUB_EMAIL = os.getenv("GITHUB_EMAIL", "")
+    REPO_URL = os.getenv("REPO_URL", "")
+
+    # Strip original URL for use with GITHUB_TOKEN
+    REPO_URL_STRIPPED = REPO_URL.removeprefix("https://")
+
     # Configure Git to use the PAT
     subprocess.run(["git", "config", "--global", "user.name", GITHUB_USERNAME], check=True)
     subprocess.run(["git", "config", "--global", "user.email", GITHUB_EMAIL], check=True)
     subprocess.run(
-        ["git", "remote", "set-url", "origin", f"https://{GITHUB_TOKEN}@{REPO_URL}"],
+        ["git", "remote", "set-url", "origin", f"https://{GITHUB_TOKEN}@{REPO_URL_STRIPPED}"],
         check=True,
     )
 
 
 def git_push():
-    subprocess.run(["git", "add", "."], check=True)
+    BRANCH_NAME = os.getenv("DATA_BRANCH_NAME", "")
+
+    subprocess.run(["git", "add", "-f", "data"], check=True)
     subprocess.run(["git", "commit", "-m", "Automated data push"], check=True)
-    subprocess.run(["git", "push", "origin", BRANCH_NAME], check=True)
+    subprocess.run(["git", "pull", "origin", "data-branch"], check=True)
+    subprocess.run(["git", "push", "origin", f"main:{BRANCH_NAME}"], check=True)
 
 
 def main():
@@ -74,16 +78,15 @@ def main():
 
     # Adding arguments
     parser.add_argument(
-        "mining_frequency", type=int, help="Specify <N> minutes to collect new observation"
+        "--mining_frequency", type=int, help="Specify <N> minutes to collect new observation"
     )
 
     # Adding arguments
     parser.add_argument(
-        "new_obseravtions_per_push",
+        "--new_observations_per_push",
         type=int,
         default=None,
-        help="Specify number of new mined observations \
-                                                                    to push them into git",
+        help="Specify number of new mined observations to push them into git",
     )
 
     # Parsing arguments
@@ -103,6 +106,7 @@ def main():
         "GITHUB_TOKEN",
         "GITHUB_EMAIL",
         "REPO_URL",
+        "DATA_BRANCH_NAME",
     ]
     check_and_load_env_variables(required_env_variables)
 
@@ -150,7 +154,7 @@ def main():
     print("WEBDRIVER OPENED SUCCESSFULLY...")
 
     try:
-        if args.new_obseravtions_per_push:
+        if args.new_observations_per_push:
             i = 0
             git_setup()
 
@@ -180,9 +184,9 @@ def main():
                 writer.writerow(data)
 
             # Push N new-observations to git
-            if args.new_obseravtions_per_push:
+            if args.new_observations_per_push:
                 i += 1
-                if i % args.new_obseravtions_per_push == 0:
+                if i % args.new_observations_per_push == 0:
                     git_push()
 
             total_time = 60 * args.mining_frequency  # in seconds
