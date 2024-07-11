@@ -5,26 +5,22 @@
 PROJECT_NAME = Taxi_formula_revelation
 PYTHON_VERSION = 3.10
 PYTHON_INTERPRETER = python
+DOCKER_IMAGE = dataminer_image
+DOCKER_CONTAINER = dataminer_container
+ENV_FILE = .env
+MS_EDGE_USER_DATA_PATH = $(shell grep MS_EDGE_USER_DATA_PATH .env | cut -d '=' -f2)
 
 #################################################################################
 # COMMANDS                                                                      #
 #################################################################################
 
-
-## Install Python Dependencies
-.PHONY: requirements
-requirements:
-	$(PYTHON_INTERPRETER) -m pip install -U pip
-	$(PYTHON_INTERPRETER) -m pip install -r requirements.txt
+## Set up python interpreter environment
+.PHONY: create_environment
+create_environment:
 	
+	conda create --name $(PROJECT_NAME) python=$(PYTHON_VERSION) --file requirements.txt -y
 
-
-
-## Delete all compiled Python files
-.PHONY: clean
-clean:
-	find . -type f -name "*.py[co]" -delete
-	find . -type d -name "__pycache__" -delete
+	@echo ">>> conda env created. Activate with:\nconda activate $(PROJECT_NAME)"
 
 ## Lint using flake8 and black (use `make format` to do formatting)
 .PHONY: lint
@@ -38,19 +34,43 @@ lint:
 format:
 	black --config pyproject.toml taxi
 
+#################################################################################
+# DOCKER SETUP AND USE                                                          #
+#################################################################################
 
+.PHONY : launch_datamining install_docker build_image run_container clean
+launch_datamining: install_docker build_image run_container
 
+install_docker:
+	# Update package information
+	sudo apt-get update
+	# Install Docker prerequisites
+	sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+	# Add Docker's GPG key
+	curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+	# Add Docker repository
+	sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+	# Update package information again
+	sudo apt-get update
+	# Install Docker
+	sudo apt-get install -y docker-ce
 
-## Set up python interpreter environment
-.PHONY: create_environment
-create_environment:
-	
-	conda create --name $(PROJECT_NAME) python=$(PYTHON_VERSION) -y
-	
-	@echo ">>> conda env created. Activate with:\nconda activate $(PROJECT_NAME)"
-	
+# Command to build the Docker image
 
+build_image:
+	docker build -t $(DOCKER_IMAGE) .
 
+# Command to run the Docker container
+run_container:
+	docker run --env-file .env \
+	-e DOCKER_ENV=true \
+	--mount type=bind,source="$(MS_EDGE_USER_DATA_PATH)", \
+	target=/app/MSEDGE_USER_DATA --name $(DOCKER_CONTAINER) $(DOCKER_IMAGE)
+
+# Command to clean up (stop and remove container)
+clean:
+	docker stop $(DOCKER_CONTAINER)
+	docker rm $(DOCKER_CONTAINER)
 
 #################################################################################
 # PROJECT RULES                                                                 #

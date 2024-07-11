@@ -13,8 +13,15 @@ COPY requirements.txt .
 # Install the dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
+#===============================================
+# Install Linux Dependencies for Selenium docker
+#===============================================
+RUN apt-get update
+RUN apt-get install -y chromium
+
 # Copy the rest of the application code into the container
 COPY . .
+
 
 # Define the command to run the application
 ENTRYPOINT ["python", "./taxi/features/launch_datamining.py"]

@@ -1,6 +1,7 @@
 import argparse
 import csv
 import os
+import subprocess
 import time
 from datetime import datetime
 from pathlib import Path
@@ -43,14 +44,46 @@ def check_and_load_env_variables(required_env_variables):
             raise ValueError("Missing required environmental variables")
 
 
+GITHUB_USERNAME = os.getenv("GITHUB_USERNAME", "")
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
+GITHUB_EMAIL = os.getenv("GITHUB_EMAIL", "")
+REPO_URL = os.getenv("REPO_URL", "")
+BRANCH_NAME = os.getenv("DATA_BRANCH_NAME", "")
+
+
+def git_setup():
+    # Configure Git to use the PAT
+    subprocess.run(["git", "config", "--global", "user.name", GITHUB_USERNAME], check=True)
+    subprocess.run(["git", "config", "--global", "user.email", GITHUB_EMAIL], check=True)
+    subprocess.run(
+        ["git", "remote", "set-url", "origin", f"https://{GITHUB_TOKEN}@{REPO_URL}"],
+        check=True,
+    )
+
+
+def git_push():
+    subprocess.run(["git", "add", "."], check=True)
+    subprocess.run(["git", "commit", "-m", "Automated data push"], check=True)
+    subprocess.run(["git", "push", "origin", BRANCH_NAME], check=True)
+
+
 def main():
     parser = argparse.ArgumentParser(
-        description="Launch data mining script for taxi aggregator website."
+        description="Launch data mining script for taxi aggregator website. Requires environmental variables to run"
     )
 
     # Adding arguments
     parser.add_argument(
-        "frequency", type=int, help="Specify <N> minutes to collect new observation"
+        "mining_frequency", type=int, help="Specify <N> minutes to collect new observation"
+    )
+
+    # Adding arguments
+    parser.add_argument(
+        "new_obseravtions_per_push",
+        type=int,
+        default=None,
+        help="Specify number of new mined observations \
+                                                                    to push them into git",
     )
 
     # Parsing arguments
@@ -66,11 +99,21 @@ def main():
         "LATITUDE",
         "LONGITUDE",
         "OPENWEATHER_API_KEY",
+        "GITHUB_USERNAME",
+        "GITHUB_TOKEN",
+        "GITHUB_EMAIL",
+        "REPO_URL",
     ]
     check_and_load_env_variables(required_env_variables)
 
     CSV_FILE_path = Path(os.getenv("CSV_DATABASE_PATH", ""))
-    USER_DATA_path = Path(os.getenv("MS_EDGE_USER_DATA_PATH", ""))
+
+    # If runned via docker, host MSEDGE folder is mounted into /app/MSEDGE_USER_DATA folder
+    DOCKER_ENV = os.getenv("DOCKER_ENV")
+    if DOCKER_ENV:
+        USER_DATA_path = Path("/app/MSEDGE_USER_DATA")
+    else:
+        USER_DATA_path = Path(os.getenv("MS_EDGE_USER_DATA_PATH", ""))
 
     # Split USER_DATA_path to user-data-dir and profile-directory, as required by selenium.options.add_argument(...) function
     USER_DATA_dir_str = str(USER_DATA_path.parent)
@@ -107,6 +150,10 @@ def main():
     print("WEBDRIVER OPENED SUCCESSFULLY...")
 
     try:
+        if args.new_obseravtions_per_push:
+            i = 0
+            git_setup()
+
         while True:
             data = {"timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")}
 
@@ -132,7 +179,13 @@ def main():
                     writer.writeheader()
                 writer.writerow(data)
 
-            total_time = 60 * args.frequency  # in seconds
+            # Push N new-observations to git
+            if args.new_obseravtions_per_push:
+                i += 1
+                if i % args.new_obseravtions_per_push == 0:
+                    git_push()
+
+            total_time = 60 * args.mining_frequency  # in seconds
             total_iterations = 100
             sleep_duration = total_time / total_iterations
 

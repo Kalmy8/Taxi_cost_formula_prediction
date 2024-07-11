@@ -64,7 +64,7 @@ def get_random_address(STORED_ADDRESSES_path: Path, ADDRESS_BASE_URL_str: str) -
     """
 
     try:
-        with open(STORED_ADDRESSES_path, "r") as file:
+        with open(STORED_ADDRESSES_path, "r", encoding="utf8") as file:
             addresses = file.read().splitlines()
             if len(addresses) == 0:
                 raise EOFError
