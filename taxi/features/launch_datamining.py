@@ -45,6 +45,9 @@ def check_and_load_env_variables(required_env_variables):
 
 
 def git_setup():
+    """
+    Sets github globals to allow working with remote repository
+    """
     GITHUB_USERNAME = os.getenv("GITHUB_USERNAME", "")
     GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
     GITHUB_EMAIL = os.getenv("GITHUB_EMAIL", "")
@@ -62,13 +65,49 @@ def git_setup():
     )
 
 
-def git_push():
+def git_pull_remote_data():
     BRANCH_NAME = os.getenv("DATA_BRANCH_NAME", "")
+    CSV_DATABASE_PATH = os.getenv("CSV_DATABASE_PATH", "")
 
-    subprocess.run(["git", "add", "-f", "data"], check=True)
-    subprocess.run(["git", "commit", "-m", "Automated data push"], check=True)
-    subprocess.run(["git", "pull", "origin", "data-branch"], check=True)
-    subprocess.run(["git", "push", "origin", f"main:{BRANCH_NAME}"], check=True)
+    subprocess.run(["git", "fetch", "origin"], check=True)
+    subprocess.run(
+        ["git", "checkout", f"origin/{BRANCH_NAME}", "--", f"{CSV_DATABASE_PATH}"], check=True
+    )
+
+
+def git_push_mined_data():
+    """
+    Removes all files from git index, adds only data/data.csv file, commits and pushes it to the
+    remote DATA_BRANCH repository, when resets branch to the latest commit
+
+    """
+    BRANCH_NAME = os.getenv("DATA_BRANCH_NAME", "")
+    CSV_DATABASE_PATH = os.getenv("CSV_DATABASE_PATH", "")
+
+    subprocess.run(["git", "rm", ".", "-r", "--cached", "-f", ">", "/dev/null"], check=True)
+    subprocess.run(["git", "add", "-f", f"{CSV_DATABASE_PATH}"], check=True)
+    subprocess.run(
+        ["git", "commit", "-m", "Automated data push", "--no-verify"],
+        check=True,
+    )
+    subprocess.run(["git", "push", "origin", f"HEAD:{BRANCH_NAME}", "-f"], check=True)
+    subprocess.run(["git", "reset", "--hard", "HEAD~1"], check=True)
+
+    print("Changes are successfully pushed")
+
+
+def write_to_csv(CSV_FILE_path: Path, data: dict[str, str]):
+    """
+    Writes data to the end of specified .csv file
+    :param CSV_FILE_path: points to the data-storage .csv file
+    :param data: data to write
+    """
+    file_exists = os.path.isfile(CSV_FILE_path)
+    with open(CSV_FILE_path, mode="a", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=data.keys())
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow(data)
 
 
 def main():
@@ -102,11 +141,6 @@ def main():
         "LATITUDE",
         "LONGITUDE",
         "OPENWEATHER_API_KEY",
-        "GITHUB_USERNAME",
-        "GITHUB_TOKEN",
-        "GITHUB_EMAIL",
-        "REPO_URL",
-        "DATA_BRANCH_NAME",
     ]
     check_and_load_env_variables(required_env_variables)
 
@@ -155,6 +189,15 @@ def main():
 
     try:
         if args.new_observations_per_push:
+            required_env_variables = [
+                "GITHUB_USERNAME",
+                "GITHUB_TOKEN",
+                "GITHUB_EMAIL",
+                "REPO_URL",
+                "DATA_BRANCH_NAME",
+            ]
+            check_and_load_env_variables(required_env_variables)
+            batch_observations = []
             i = 0
             git_setup()
 
@@ -175,19 +218,27 @@ def main():
             data.update(taxi_dict)
             data.update(weather_dict)
 
-            # Write to CSV
-            file_exists = os.path.isfile(CSV_FILE_path)
-            with open(CSV_FILE_path, mode="a", newline="", encoding="utf-8") as file:
-                writer = csv.DictWriter(file, fieldnames=data.keys())
-                if not file_exists:
-                    writer.writeheader()
-                writer.writerow(data)
+            # Append data to the local storage
+            if args.new_observations_per_push is None:
+                write_to_csv(CSV_FILE_path, data)
 
             # Push N new-observations to git
-            if args.new_observations_per_push:
+            else:
+                batch_observations.append(data)
                 i += 1
                 if i % args.new_observations_per_push == 0:
-                    git_push()
+                    # Fetch actual remote data
+                    git_pull_remote_data()
+
+                    # Write all collected data batch to the remote database .csv file
+                    for data in batch_observations:
+                        write_to_csv(CSV_FILE_path, data)
+
+                    # Push mined data to the remote DATA_BRANCH
+                    git_push_mined_data()
+
+                    # Empty copied differencies
+                    batch_observations = []
 
             total_time = 60 * args.mining_frequency  # in seconds
             total_iterations = 100
