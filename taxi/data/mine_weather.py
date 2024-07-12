@@ -1,6 +1,7 @@
 import os
 
 import requests
+from dotenv import load_dotenv
 
 
 class WeatherParser:
@@ -40,10 +41,11 @@ class WeatherParser:
 
 def main():
     # WeatherParser required parameters
-    OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY", "")
-    CITY = os.getenv("CITY", "")
-    LATITUDE = os.getenv("LATITUDE", "")
-    LONGITUDE = os.getenv("LONGITUDE", "")
+    load_dotenv()
+    OPENWEATHER_API_KEY = str(os.getenv("OPENWEATHER_API_KEY"))
+    CITY = str(os.getenv("CITY"))
+    LATITUDE = str(os.getenv("LATITUDE"))
+    LONGITUDE = str(os.getenv("LONGITUDE"))
     weather = WeatherParser(OPENWEATHER_API_KEY, CITY, LATITUDE, LONGITUDE)
     print(weather.get_weather_dict())
 

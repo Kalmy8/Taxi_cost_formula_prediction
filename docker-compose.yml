@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  dataminer:
+    build:
+      context: .
+    container_name: dataminer_container
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ${MS_EDGE_USER_DATA_PATH}:/app/MSEDGE_USER_DATA
+

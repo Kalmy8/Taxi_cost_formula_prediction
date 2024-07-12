@@ -4,6 +4,7 @@ from random import shuffle
 
 import requests
 from bs4 import BeautifulSoup
+from dotenv import load_dotenv
 
 
 def collect_addresses(base_url: str) -> list[str]:
@@ -82,8 +83,9 @@ def get_random_address(STORED_ADDRESSES_path: Path, ADDRESS_BASE_URL_str: str) -
 
 def main():
     # Load environment variables
-    ADDRESS_BASE_URL_str = os.getenv("ADDRESS_BASE_URL", "")
-    STORED_ADDRESSES_path = Path(os.getenv("STORED_ADDRESSES_PATH", ""))
+    load_dotenv()
+    ADDRESS_BASE_URL_str = str(os.getenv("ADDRESS_BASE_URL"))
+    STORED_ADDRESSES_path = Path(str(os.getenv("STORED_ADDRESSES_PATH")))
 
     get_random_address(STORED_ADDRESSES_path, ADDRESS_BASE_URL_str)
 

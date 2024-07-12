@@ -2,6 +2,7 @@ import os
 import time
 from pathlib import Path
 
+from dotenv import load_dotenv
 from selenium import webdriver
 from selenium.common import NoSuchElementException, StaleElementReferenceException
 from selenium.webdriver.common.by import By
@@ -11,13 +12,17 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 from taxi.data.get_random_address import get_random_address
 
+IMPLICIT_WAIT = 20
+EXPLICIT_WAIT = 20
+SLEEPS_DURATION = 5
+
 
 class TaxiParser:
     def __init__(
         self, driver: webdriver, STORED_ADDRESSES_path: Path, ADDRESS_BASE_URL_str: str
     ):
         self.driver = driver
-        self.driver.implicitly_wait(5)
+        self.driver.implicitly_wait(IMPLICIT_WAIT)
         self.STORED_ADDRESSES_path = STORED_ADDRESSES_path
         self.ADDRESS_BASE_URL_str = ADDRESS_BASE_URL_str
 
@@ -32,10 +37,11 @@ class TaxiParser:
 
     def __open_website(self):
         self.driver.get("https://taxi.yandex.ru/")
+        print("WEBDRIVER OPENED SUCCESSFULLY...")
 
     def __enter_keys_and_get_distance(self, ride_info: dict[str, str]):
         # Wait for elements to be presented
-        textareas = WebDriverWait(self.driver, 5).until(
+        textareas = WebDriverWait(self.driver, EXPLICIT_WAIT).until(
             EC.presence_of_all_elements_located((By.TAG_NAME, "textarea"))
         )
 
@@ -50,14 +56,14 @@ class TaxiParser:
             )
             used_addresses.append(address)
             textarea.send_keys(Keys.CONTROL + "a")
-            time.sleep(1)
+            time.sleep(SLEEPS_DURATION)
             textarea.send_keys(Keys.DELETE)
-            time.sleep(1)
+            time.sleep(SLEEPS_DURATION)
             textarea.send_keys(address)
-            time.sleep(2)
+            time.sleep(SLEEPS_DURATION)
 
             # Catch floating window with valid addresses helper
-            floating_addresses_div = WebDriverWait(self.driver, 5).until(
+            floating_addresses_div = WebDriverWait(self.driver, EXPLICIT_WAIT).until(
                 EC.element_to_be_clickable(
                     (By.CSS_SELECTOR, "div.VerticalScroll--q4j8Q.vertical--xrlWR")
                 )
@@ -80,12 +86,12 @@ class TaxiParser:
 
                     except (StaleElementReferenceException, NoSuchElementException):
                         if attempt < max_retries - 1:
-                            time.sleep(3)  # wait before retrying
+                            time.sleep(SLEEPS_DURATION)  # wait before retrying
                         else:
                             raise  # re-raise the exception after the last attempt
 
             first_child.click()
-            time.sleep(3)
+            time.sleep(SLEEPS_DURATION)
 
         ride_info["Точка отправления"] = used_addresses[0]
         ride_info["Точка прибытия"] = used_addresses[1]
@@ -109,7 +115,7 @@ def main():
     options = webdriver.EdgeOptions()
 
     options.use_chromium = True
-    # options.add_argument("--headless")  # Run headless browser (without GUI)
+    options.add_argument("--headless")  # Run headless browser (without GUI)
     options.add_argument("--user-data-dir=C:\\User Data")
     options.add_argument("--profile-directory=Default")
     options.add_argument("--disable-gpu")
@@ -118,11 +124,12 @@ def main():
 
     # Initialize the driver
     driver = webdriver.Edge(options=options)
-    driver.implicitly_wait(5)
+    driver.implicitly_wait(IMPLICIT_WAIT)
 
     # Load environment variables
-    ADDRESS_BASE_URL_str = os.getenv("ADDRESS_BASE_URL", "")
-    STORED_ADDRESSES_path = Path(os.getenv("STORED_ADDRESSES_PATH", ""))
+    load_dotenv()
+    ADDRESS_BASE_URL_str = str(os.getenv("ADDRESS_BASE_URL"))
+    STORED_ADDRESSES_path = Path(str(os.getenv("STORED_ADDRESSES_PATH")))
 
     taxi = TaxiParser(driver, STORED_ADDRESSES_path, ADDRESS_BASE_URL_str)
     ride_info = taxi.get_ride_info_dict()

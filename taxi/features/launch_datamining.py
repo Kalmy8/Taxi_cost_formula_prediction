@@ -1,4 +1,3 @@
-import argparse
 import csv
 import os
 import subprocess
@@ -17,7 +16,7 @@ from taxi.data.mine_weather import WeatherParser
 # Function to check and load missing environment variables
 def check_and_load_env_variables(required_env_variables):
     # Check for missing environment variables
-    missing_args = [arg for arg in required_env_variables if os.getenv(arg, "") == ""]
+    missing_args = [arg for arg in required_env_variables if os.getenv(arg) is None]
 
     if missing_args:
         # Print missing variables
@@ -30,7 +29,7 @@ def check_and_load_env_variables(required_env_variables):
 
         # Check again for missing variables after loading .env file
         missing_args_after_load = [
-            arg for arg in required_env_variables if os.getenv(arg, "") == ""
+            arg for arg in required_env_variables if os.getenv(arg) is None
         ]
 
         if missing_args_after_load:
@@ -48,10 +47,10 @@ def git_setup():
     """
     Sets github globals to allow working with remote repository
     """
-    GITHUB_USERNAME = os.getenv("GITHUB_USERNAME", "")
-    GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
-    GITHUB_EMAIL = os.getenv("GITHUB_EMAIL", "")
-    REPO_URL = os.getenv("REPO_URL", "")
+    GITHUB_USERNAME = str(os.getenv("GITHUB_USERNAME"))
+    GITHUB_TOKEN = str(os.getenv("GITHUB_TOKEN"))
+    GITHUB_EMAIL = str(os.getenv("GITHUB_EMAIL"))
+    REPO_URL = str(os.getenv("REPO_URL"))
 
     # Strip original URL for use with GITHUB_TOKEN
     REPO_URL_STRIPPED = REPO_URL.removeprefix("https://")
@@ -66,8 +65,8 @@ def git_setup():
 
 
 def git_pull_remote_data():
-    BRANCH_NAME = os.getenv("DATA_BRANCH_NAME", "")
-    CSV_DATABASE_PATH = os.getenv("CSV_DATABASE_PATH", "")
+    BRANCH_NAME = str(os.getenv("DATA_BRANCH_NAME"))
+    CSV_DATABASE_PATH = str(os.getenv("CSV_DATABASE_PATH"))
 
     subprocess.run(["git", "fetch", "origin"], check=True)
     subprocess.run(
@@ -81,10 +80,10 @@ def git_push_mined_data():
     remote DATA_BRANCH repository, when resets branch to the latest commit
 
     """
-    BRANCH_NAME = os.getenv("DATA_BRANCH_NAME", "")
-    CSV_DATABASE_PATH = os.getenv("CSV_DATABASE_PATH", "")
+    BRANCH_NAME = str(os.getenv("DATA_BRANCH_NAME"))
+    CSV_DATABASE_PATH = str(os.getenv("CSV_DATABASE_PATH"))
 
-    subprocess.run(["git", "rm", ".", "-r", "--cached", "-f", ">", "/dev/null"], check=True)
+    subprocess.run(["git", "rm", ".", "-r", "--cached", "-f", "--quiet"], check=True)
     subprocess.run(["git", "add", "-f", f"{CSV_DATABASE_PATH}"], check=True)
     subprocess.run(
         ["git", "commit", "-m", "Automated data push", "--no-verify"],
@@ -111,61 +110,45 @@ def write_to_csv(CSV_FILE_path: Path, data: dict[str, str]):
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Launch data mining script for taxi aggregator website. Requires environmental variables to run"
-    )
-
-    # Adding arguments
-    parser.add_argument(
-        "--mining_frequency", type=int, help="Specify <N> minutes to collect new observation"
-    )
-
-    # Adding arguments
-    parser.add_argument(
-        "--new_observations_per_push",
-        type=int,
-        default=None,
-        help="Specify number of new mined observations to push them into git",
-    )
-
-    # Parsing arguments
-    args = parser.parse_args()
-
     # Specify all the environmental variables
     required_env_variables = [
         "ADDRESS_BASE_URL",
         "STORED_ADDRESSES_PATH",
         "CSV_DATABASE_PATH",
         "MS_EDGE_USER_DATA_PATH",
-        "CITY",
+        "TZ",
         "LATITUDE",
         "LONGITUDE",
         "OPENWEATHER_API_KEY",
+        "MINING_FREQUENCY",
     ]
     check_and_load_env_variables(required_env_variables)
 
-    CSV_FILE_path = Path(os.getenv("CSV_DATABASE_PATH", ""))
+    CSV_FILE_path = Path(str(os.getenv("CSV_DATABASE_PATH")))
 
     # If runned via docker, host MSEDGE folder is mounted into /app/MSEDGE_USER_DATA folder
     DOCKER_ENV = os.getenv("DOCKER_ENV")
     if DOCKER_ENV:
-        USER_DATA_path = Path("/app/MSEDGE_USER_DATA")
+        USER_DATA_path = Path("./MSEDGE_USER_DATA")
     else:
-        USER_DATA_path = Path(os.getenv("MS_EDGE_USER_DATA_PATH", ""))
+        USER_DATA_path = Path(str(os.getenv("MS_EDGE_USER_DATA_PATH")))
 
-    # Split USER_DATA_path to user-data-dir and profile-directory, as required by selenium.options.add_argument(...) function
+    # USER_DATA_path as required by selenium.options.add_argument(...) function
     USER_DATA_dir_str = str(USER_DATA_path.parent)
-    USER_DATA_profile_str = str(USER_DATA_path.name)
+
+    # Data-Mining pace required parameters
+    NEW_OBSERVATIONS_PER_PUSH = str(os.getenv("NEW_OBSERVATIONS_PER_PUSH"))
+    MINING_FREQUENCY = int(str(os.getenv("MINING_FREQUENCY")))
 
     # TaxiParser required parameters
-    ADDRESS_BASE_URL_str = os.getenv("ADDRESS_BASE_URL", "")
-    STORED_ADDRESSES_path = Path(os.getenv("STORED_ADDRESSES_PATH", ""))
+    ADDRESS_BASE_URL_str = str(os.getenv("ADDRESS_BASE_URL"))
+    STORED_ADDRESSES_path = Path(str(os.getenv("STORED_ADDRESSES_PATH")))
 
     # WeatherParser required parameters
-    OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY", "")
-    CITY = os.getenv("CITY", "")
-    LATITUDE = os.getenv("LATITUDE", "")
-    LONGITUDE = os.getenv("LONGITUDE", "")
+    OPENWEATHER_API_KEY = str(os.getenv("OPENWEATHER_API_KEY"))
+    CITY = str(os.getenv("CITY"))
+    LATITUDE = str(os.getenv("LATITUDE"))
+    LONGITUDE = str(os.getenv("LONGITUDE"))
 
     # Ensure the data directory exists
     os.makedirs(CSV_FILE_path.parent, exist_ok=True)
@@ -177,7 +160,6 @@ def main():
     options.use_chromium = True
     options.add_argument("--headless")  # Run headless browser (without GUI)
     options.add_argument(f"--user-data-dir={USER_DATA_dir_str}")
-    options.add_argument(f"--profile-directory={USER_DATA_profile_str}")
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
@@ -185,10 +167,9 @@ def main():
     # Initialize the driver
     driver = webdriver.Edge(options=options)
 
-    print("WEBDRIVER OPENED SUCCESSFULLY...")
-
     try:
-        if args.new_observations_per_push:
+        if NEW_OBSERVATIONS_PER_PUSH:
+            NEW_OBSERVATIONS_PER_PUSH_int = int(NEW_OBSERVATIONS_PER_PUSH)
             required_env_variables = [
                 "GITHUB_USERNAME",
                 "GITHUB_TOKEN",
@@ -201,32 +182,33 @@ def main():
             i = 0
             git_setup()
 
+        # Create parsers with defined configurations
+        taxi = TaxiParser(driver, STORED_ADDRESSES_path, ADDRESS_BASE_URL_str)
+        weather = WeatherParser(OPENWEATHER_API_KEY, CITY, LATITUDE, LONGITUDE)
+
         while True:
             data = {"timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")}
 
-            # Get predictors data
-            taxi = TaxiParser(driver, STORED_ADDRESSES_path, ADDRESS_BASE_URL_str)
+            # Fetch predictors data
             taxi_dict = taxi.get_ride_info_dict()
             print("TAXI INFORMATION PARSED...")
 
-            weather = WeatherParser(OPENWEATHER_API_KEY, CITY, LATITUDE, LONGITUDE)
-            print("WEATHER INFORMATION PARSED...")
-
             weather_dict = weather.get_weather_dict()
+            print("WEATHER INFORMATION PARSED...")
 
             # Combine data
             data.update(taxi_dict)
             data.update(weather_dict)
 
             # Append data to the local storage
-            if args.new_observations_per_push is None:
+            if not NEW_OBSERVATIONS_PER_PUSH:
                 write_to_csv(CSV_FILE_path, data)
 
             # Push N new-observations to git
             else:
                 batch_observations.append(data)
                 i += 1
-                if i % args.new_observations_per_push == 0:
+                if i % NEW_OBSERVATIONS_PER_PUSH_int == 0:
                     # Fetch actual remote data
                     git_pull_remote_data()
 
@@ -240,11 +222,11 @@ def main():
                     # Empty copied differencies
                     batch_observations = []
 
-            total_time = 60 * args.mining_frequency  # in seconds
+            # Use tqdm to display a progress bar
+            total_time = 60 * MINING_FREQUENCY  # in seconds
             total_iterations = 100
             sleep_duration = total_time / total_iterations
 
-            # Use tqdm to display a progress bar
             for i in tqdm(
                 range(total_iterations),
                 desc=f"SLEEPING, NEXT INVOKATION IN {total_time} SECONDS",

@@ -1,7 +1,6 @@
 #################################################################################
 # GLOBALS                                                                       #
 #################################################################################
-
 PROJECT_NAME = Taxi_formula_revelation
 PYTHON_VERSION = 3.10
 PYTHON_INTERPRETER = python
@@ -15,12 +14,8 @@ MS_EDGE_USER_DATA_PATH = $(shell grep MS_EDGE_USER_DATA_PATH .env | cut -d '=' -
 #################################################################################
 
 ## Set up python interpreter environment
-.PHONY: create_environment
-create_environment:
-	
-	conda create --name $(PROJECT_NAME) python=$(PYTHON_VERSION) --file requirements.txt -y
+#.PHONY: create_environment
 
-	@echo ">>> conda env created. Activate with:\nconda activate $(PROJECT_NAME)"
 
 ## Lint using flake8 and black (use `make format` to do formatting)
 .PHONY: lint
@@ -39,7 +34,7 @@ format:
 #################################################################################
 
 .PHONY : launch_datamining install_docker build_image run_container clean
-launch_datamining: install_docker build_image run_container
+launch_datamining: build_image run_container
 
 install_docker:
 	# Update package information
@@ -62,6 +57,8 @@ build_image:
 
 # Command to run the Docker container
 run_container:
+	@echo "Running with MINING_FREQUENCY and NEW_OBSERVATIONS_PER_PUSH defined in .env file"
+
 	docker run --env-file .env \
 	-e DOCKER_ENV=true \
 	--mount type=bind,source="$(MS_EDGE_USER_DATA_PATH)", \
