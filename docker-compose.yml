@@ -4,6 +4,7 @@ services:
   dataminer:
     build:
       context: .
+    restart: on-failure
     container_name: dataminer_container
     env_file:
       - .env
